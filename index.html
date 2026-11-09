@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loose Dogs</title>
+<meta name="description" content="App del club">
+<meta name="theme-color" content="#f57c00">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Loose Dogs">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+  :root { --sfondo: #121212; --testo: #eeeeee; --testo-2: #aaaaaa; --primario: #f57c00; --riquadro: #1e1e1e; --bordo: #333333; }
+  html, body { margin: 0; height: 100%; background: var(--sfondo); color: var(--testo); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  #app { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px); width: 100%; height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); border: 0; display: block; background: var(--sfondo); }
+  .pannello { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; text-align: center; background: var(--sfondo); z-index: 5; }
+  .pannello img { width: 120px; height: 120px; border-radius: 50%; }
+  .pannello p { margin: 0; max-width: 360px; line-height: 1.5; color: var(--testo-2); }
+  .rotella { width: 34px; height: 34px; border: 4px solid #333; border-top-color: var(--primario); border-radius: 50%; animation: gira 0.9s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  button { font: inherit; }
+  .btn { background: var(--primario); color: #111; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
+  #invito { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: none; align-items: center; gap: 10px; background: var(--riquadro); border: 1px solid var(--bordo); border-left: 4px solid var(--primario); border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
+  #invito span { flex: 1; }
+  #invito .chiudi { background: transparent; border: none; color: var(--testo-2); font-size: 20px; padding: 2px 6px; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<!--
+  ============================================================================
+  App installabile del club (PWA)
+  ----------------------------------------------------------------------------
+  UNICA COSA DA CAMBIARE: l'indirizzo qui sotto (INDIRIZZO_APP). Copialo da
+  Apps Script → Distribuisci → Gestisci distribuzioni → App web (finisce con /exec).
+  Nome e colori dell'app si cambiano in manifest.webmanifest e nei <meta> sopra.
+  ============================================================================
+-->
+<script>
+  const INDIRIZZO_APP = "https://script.google.com/macros/s/AKfycbynlzHMiGsgrdXvaJv64FQJzx1_K5cdmYNcweOCni-t1XA3C9ncuaNVPz7iLRfk0SrT/exec";
+</script>
+
+<div id="attesa" class="pannello">
+  <img src="icona-192.png" alt="">
+  <div class="rotella" aria-hidden="true"></div>
+  <p>Caricamento…</p>
+</div>
+
+<div id="offline" class="pannello" hidden>
+  <img src="icona-192.png" alt="">
+  <p><b>Nessuna connessione a internet.</b><br>L'app ha bisogno della rete per mostrare i dati del club.</p>
+  <button class="btn" type="button" onclick="location.reload()">Riprova</button>
+</div>
+
+<div id="configura" class="pannello" hidden>
+  <p><b>App non ancora configurata.</b><br>In index.html va scritto l'indirizzo dell'app (quello che finisce con /exec).</p>
+</div>
+
+<iframe id="app" title="App del club" allow="geolocation; fullscreen; screen-wake-lock; clipboard-write; autoplay; web-share" referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+<div id="invito" role="dialog" aria-label="Installa l'app">
+  <span id="invitoTesto"></span>
+  <button id="invitoInstalla" class="btn" type="button" hidden>Installa</button>
+  <button class="chiudi" type="button" aria-label="Chiudi" onclick="chiudiInvito()">✕</button>
+</div>
+
+<script>
+(function () {
+  const iframe = document.getElementById("app");
+  const attesa = document.getElementById("attesa");
+  const memoria = {
+    leggi(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    togli(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+
+  // ---------- avvio dell'app del club dentro la finestra ----------
+  const valido = /^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[A-Za-z0-9_-]+\/(exec|dev)$/.test(INDIRIZZO_APP) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(INDIRIZZO_APP);
+  if (!valido) {
+    attesa.hidden = true;
+    document.getElementById("configura").hidden = false;
+    return;
+  }
+  if (navigator.onLine === false) {
+    attesa.hidden = true;
+    document.getElementById("offline").hidden = false;
+    window.addEventListener("online", function () { location.reload(); });
+    return;
+  }
+  // I parametri dell'indirizzo (es. ?sezione=giri) passano all'app; app=pwa le dice che è installata
+  const parametri = new URLSearchParams(location.search);
+  parametri.set("app", "pwa");
+  iframe.src = INDIRIZZO_APP + (INDIRIZZO_APP.indexOf("?") === -1 ? "?" : "&") + parametri.toString();
+  iframe.addEventListener("load", function () { setTimeout(function () { attesa.hidden = true; }, 600); });
+  // Controllo della rete (navigator.onLine non basta: con poco segnale risulta "in linea")
+  const controllo = new AbortController();
+  setTimeout(function () { controllo.abort(); }, 8000);
+  fetch("favicon.png?rete=" + Date.now(), { cache: "no-store", signal: controllo.signal }).catch(function () {
+    attesa.hidden = true;
+    iframe.style.display = "none";
+    document.getElementById("offline").hidden = false;
+  });
+  setTimeout(function () { attesa.hidden = true; }, 15000);
+
+  // ---------- custodia del codice "ricordami" (sull'iPhone la pagina interna lo perde alla chiusura) ----------
+  // Si risponde solo alle pagine di Apps Script che stanno dentro la NOSTRA finestra.
+  const ORIGINE_APP = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
+  const ORIGINE_PROVA = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+  function dentroLaNostraFinestra(w) {
+    try {
+      const radice = iframe.contentWindow;
+      if (!radice) return false;
+      if (w === radice) return true;
+      for (let i = 0; i < radice.frames.length; i++) {
+        const f = radice.frames[i];
+        if (w === f) return true;
+        for (let j = 0; j < f.frames.length; j++) if (w === f.frames[j]) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  window.addEventListener("message", function (e) {
+    const d = e.data;
+    if (!d || d.ld !== 1 || typeof d.tipo !== "string") return;
+    const provaLocale = ORIGINE_PROVA.test(e.origin) && ORIGINE_PROVA.test(location.origin);
+    if (!ORIGINE_APP.test(e.origin) && !provaLocale) return;
+    if (!dentroLaNostraFinestra(e.source)) return;
+    if (d.tipo === "chiedi") {
+      e.source.postMessage({ ld: 1, tipo: "codice", ricorda: memoria.leggi("ld_ricorda") || "" }, e.origin);
+    } else if (d.tipo === "salva" && typeof d.ricorda === "string" && d.ricorda.length < 300) {
+      memoria.scrivi("ld_ricorda", d.ricorda);
+    } else if (d.tipo === "cancella") {
+      memoria.togli("ld_ricorda");
+    }
+  });
+
+  // ---------- invito a installare (solo se aperta nel browser, non già installata) ----------
+  const installata = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const invito = document.getElementById("invito");
+  const testo = document.getElementById("invitoTesto");
+  const pulsante = document.getElementById("invitoInstalla");
+  let richiesta = null;
+  window.chiudiInvito = function () { invito.style.display = "none"; memoria.scrivi("ld_invito_chiuso", String(Date.now())); };
+  const chiusoDiRecente = Number(memoria.leggi("ld_invito_chiuso") || 0) > Date.now() - 14 * 86400000;
+  function mostraInvito(html) { if (installata || chiusoDiRecente) return; testo.innerHTML = html; invito.style.display = "flex"; }
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    richiesta = e;
+    pulsante.hidden = false;
+    mostraInvito("📲 <b>Installa l'app</b>: la trovi tra le app del telefono e si apre a schermo intero.");
+  });
+  pulsante.addEventListener("click", function () {
+    if (!richiesta) return;
+    richiesta.prompt();
+    richiesta.userChoice.finally(function () { richiesta = null; invito.style.display = "none"; });
+  });
+  window.addEventListener("appinstalled", function () { invito.style.display = "none"; });
+  if (ios && !installata) {
+    setTimeout(function () { mostraInvito("📲 Per installare l'app tocca <b>Condividi</b> ⬆️ e poi <b>Aggiungi alla schermata Home</b>."); }, 2500);
+  }
+
+  // ---------- funzionamento senza rete della sola cornice ----------
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+})();
+</script>
+</body>
+</html>

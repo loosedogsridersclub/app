@@ -1,0 +1,24 @@
+APP DA INSTALLARE SUL TELEFONO (PWA) - Club Manager
+=====================================================
+
+Questi file NON vanno in Apps Script. Vanno pubblicati su un sito gratuito
+(es. GitHub Pages). Istruzioni complete: Guida all'uso, capitolo 5.12.
+
+In breve:
+1. Apri index.html con un editor di testo e incolla il link dell'app
+   (Apps Script > Distribuisci > Gestisci distribuzioni, finisce con /exec)
+   al posto di INCOLLA_QUI_IL_LINK_DELL_APP_CHE_FINISCE_CON_/exec
+2. Su github.com: New repository (Public) > Add file > Upload files:
+   carica TUTTI i file di questa cartella (anche questo, non fa danni).
+3. Settings > Pages > Branch: main, / (root) > Save.
+   Dopo un minuto ricevi l'indirizzo, es. https://tuonome.github.io/club-app/
+4. Nell'app: Impostazioni > "Indirizzo dell'app da installare sul telefono"
+   > incolla quell'indirizzo > Salva.
+
+File:
+- index.html             la cornice (qui c'e' il link /exec)
+- manifest.webmanifest   nome, colori e icone dell'app
+- sw.js                  fa aprire la cornice anche senza rete
+- icona-192.png, icona-512.png, icona-maskable-512.png, apple-touch-icon.png,
+  favicon.png            icone con il logo del Loose Dogs Riders Club
+                         (per un altro club: stessi nomi e dimensioni 192, 512, 512, 180, 32 px)
