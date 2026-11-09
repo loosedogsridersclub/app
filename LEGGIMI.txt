@@ -19,6 +19,6 @@ File:
 - index.html             la cornice (qui c'e' il link /exec)
 - manifest.webmanifest   nome, colori e icone dell'app
 - sw.js                  fa aprire la cornice anche senza rete
-- icona-192.png, icona-512.png, icona-maskable-512.png, apple-touch-icon.png,
+- icona-192.png, icona-512.png, icona-maskable-512-v2.png, apple-touch-icon.png,
   favicon.png            icone con il logo del Loose Dogs Riders Club
                          (per un altro club: stessi nomi e dimensioni 192, 512, 512, 180, 32 px)
