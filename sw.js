@@ -1,8 +1,8 @@
 // Cornice dell'app installata: tiene in memoria i propri file per aprirsi anche
 // con rete lenta e mostrare l'avviso "nessuna connessione". I dati del club
 // arrivano sempre da Apps Script e non passano da qui.
-const VERSIONE = "ld-pwa-3";
-const FILE = ["./", "./index.html", "./manifest.webmanifest", "./icona-192.png", "./icona-512.png", "./icona-maskable-512-v2.png", "./apple-touch-icon.png", "./favicon.png"];
+const VERSIONE = "ld-pwa-4";
+const FILE = ["./", "./index.html", "./manifest.webmanifest", "./icona-192.png", "./icona-512.png", "./icona-maskable-512-v3.png", "./apple-touch-icon.png", "./favicon.png"];
 
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(VERSIONE).then(function (c) { return c.addAll(FILE); }).then(function () { return self.skipWaiting(); }));
