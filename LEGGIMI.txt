@@ -24,3 +24,7 @@ File:
                          icone con il logo del Loose Dogs Riders Club: lo stemma rotondo
                          su sfondo trasparente (per un altro club: stessi nomi e misure
                          192, 512, 180, 32 px)
+- badge-96.png           piccola icona bianca delle notifiche (barra di stato Android)
+
+Notifiche sul telefono: la configurazione (Firebase) si fa nell'app, come
+Administrator > Impostazioni > Notifiche sul telefono. Guida, capitolo 5.13.

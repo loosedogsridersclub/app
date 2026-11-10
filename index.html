@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Loose Dogs</title>
 <meta name="description" content="App del club">
-<meta name="theme-color" content="#f57c00">
+<meta name="theme-color" content="#111111">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -16,7 +16,12 @@
 <style>
   :root { --sfondo: #121212; --testo: #eeeeee; --testo-2: #aaaaaa; --primario: #f57c00; --riquadro: #1e1e1e; --bordo: #333333; }
   html, body { margin: 0; height: 100%; background: var(--sfondo); color: var(--testo); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
-  #app { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px); width: 100%; height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); border: 0; display: block; background: var(--sfondo); }
+  :root { --linea: 0px; --colore-linea: transparent; }
+  #app { position: fixed; top: calc(env(safe-area-inset-top, 0px) + var(--linea)); left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--linea)); width: 100%; height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--linea)); border: 0; display: block; background: var(--sfondo); }
+  /* «A contorno»: una linea del colore del club tra le barre del telefono e l'app */
+  .linea-bordo { position: fixed; left: 0; right: 0; height: var(--linea); background: var(--colore-linea); z-index: 4; pointer-events: none; }
+  #lineaSu { top: env(safe-area-inset-top, 0px); }
+  #lineaGiu { bottom: env(safe-area-inset-bottom, 0px); }
   .pannello { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; text-align: center; background: var(--sfondo); z-index: 5; }
   .pannello img { width: 120px; height: 120px; border-radius: 50%; }
   .pannello p { margin: 0; max-width: 360px; line-height: 1.5; color: var(--testo-2); }
@@ -24,9 +29,10 @@
   @keyframes gira { to { transform: rotate(360deg); } }
   button { font: inherit; }
   .btn { background: var(--primario); color: #111; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
-  #invito { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: none; align-items: center; gap: 10px; background: var(--riquadro); border: 1px solid var(--bordo); border-left: 4px solid var(--primario); border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
-  #invito span { flex: 1; }
-  #invito .chiudi { background: transparent; border: none; color: var(--testo-2); font-size: 20px; padding: 2px 6px; cursor: pointer; }
+  .barra, #invito { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: none; align-items: center; gap: 10px; background: var(--riquadro); border: 1px solid var(--bordo); border-left: 4px solid var(--primario); border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
+  .barra > span, #invito span { flex: 1; }
+  .barra .chiudi, #invito .chiudi { background: transparent; border: none; color: var(--testo-2); font-size: 20px; padding: 2px 6px; cursor: pointer; }
+  #barraNotifiche { top: calc(68px + env(safe-area-inset-top, 0px)); bottom: auto; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -41,7 +47,16 @@
   ============================================================================
 -->
 <script>
-  const INDIRIZZO_APP = "https://script.google.com/macros/s/AKfycbynlzHMiGsgrdXvaJv64FQJzx1_K5cdmYNcweOCni-t1XA3C9ncuaNVPz7iLRfk0SrT/exec";
+  // Colore delle barre del telefono dell'ultima apertura: niente lampo arancione all'avvio
+  (function () {
+    try {
+      const t = JSON.parse(localStorage.getItem("ld_tema") || "null");
+      if (t && /^#[0-9a-f]{6}$/i.test(t.colore)) document.querySelector('meta[name="theme-color"]').setAttribute("content", t.colore);
+      if (t && /^#[0-9a-f]{6}$/i.test(t.sfondo)) document.documentElement.style.setProperty("--sfondo", t.sfondo);
+      if (t && /^#[0-9a-f]{6}$/i.test(t.linea || "")) { document.documentElement.style.setProperty("--linea", "2px"); document.documentElement.style.setProperty("--colore-linea", t.linea); }
+    } catch (e) {}
+  })();
+  const INDIRIZZO_APP = "https://script.google.com/macros/s/AKfycbxG1ISLsvsxIAhgbpR8ZMziRdq39I7Qe-WaR-yymYfu4Wg5Gz54MbCa_UidzBVOJE0n/exec";
 </script>
 
 <div id="attesa" class="pannello">
@@ -60,7 +75,15 @@
   <p><b>App non ancora configurata.</b><br>In index.html va scritto l'indirizzo dell'app (quello che finisce con /exec).</p>
 </div>
 
+<div id="lineaSu" class="linea-bordo"></div>
+<div id="lineaGiu" class="linea-bordo"></div>
 <iframe id="app" title="App del club" allow="geolocation; fullscreen; screen-wake-lock; clipboard-write; autoplay; web-share" referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+<div id="barraNotifiche" class="barra" role="dialog" aria-label="Notifiche">
+  <span>🔔 <b id="notificheTitolo">Ricevi sul telefono gli avvisi del club</b>: <span id="notificheDettaglio">nuovi eventi, promemoria, sondaggi</span>.</span>
+  <button id="notificheAttiva" class="btn" type="button">Attiva</button>
+  <button id="notificheChiudi" class="chiudi" type="button" aria-label="Non ora" onclick="rimandaNotifiche()">✕</button>
+</div>
 
 <div id="invito" role="dialog" aria-label="Installa l'app">
   <span id="invitoTesto"></span>
@@ -110,6 +133,7 @@
   // Si risponde solo alle pagine di Apps Script che stanno dentro la NOSTRA finestra.
   const ORIGINE_APP = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
   const ORIGINE_PROVA = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+  let paginaApp = null;
   function dentroLaNostraFinestra(w) {
     try {
       const radice = iframe.contentWindow;
@@ -129,14 +153,98 @@
     const provaLocale = ORIGINE_PROVA.test(e.origin) && ORIGINE_PROVA.test(location.origin);
     if (!ORIGINE_APP.test(e.origin) && !provaLocale) return;
     if (!dentroLaNostraFinestra(e.source)) return;
+    paginaApp = { win: e.source, origine: e.origin };
+    if (d.tipo === "tema") {
+      // Le barre del telefono prendono il colore della barra dell'app
+      if (/^#[0-9a-f]{6}$/i.test(d.colore)) document.querySelector('meta[name="theme-color"]').setAttribute("content", d.colore);
+      if (/^#[0-9a-f]{6}$/i.test(d.sfondo)) document.documentElement.style.setProperty("--sfondo", d.sfondo);
+      const linea = /^#[0-9a-f]{6}$/i.test(d.linea || "") ? d.linea : "";
+      document.documentElement.style.setProperty("--linea", linea ? "2px" : "0px");
+      document.documentElement.style.setProperty("--colore-linea", linea || "transparent");
+      memoria.scrivi("ld_tema", JSON.stringify({ colore: d.colore, sfondo: d.sfondo, linea: linea }));
+      return;
+    }
+    if (d.tipo === "accesso") { notifiche.accesso(d.notifiche, d.testi); return; }
     if (d.tipo === "chiedi") {
       e.source.postMessage({ ld: 1, tipo: "codice", ricorda: memoria.leggi("ld_ricorda") || "" }, e.origin);
     } else if (d.tipo === "salva" && typeof d.ricorda === "string" && d.ricorda.length < 300) {
       memoria.scrivi("ld_ricorda", d.ricorda);
     } else if (d.tipo === "cancella") {
       memoria.togli("ld_ricorda");
+      notifiche.uscita();
     }
   });
+
+  // ---------- notifiche sul telefono (Firebase Cloud Messaging) ----------
+  // Il permesso si chiede solo da questa pagina principale e solo dopo un tocco
+  // su «Attiva» (regola di iPhone). Il codice del telefono va all'app, che lo
+  // registra sul server per il socio collegato.
+  const notifiche = (function () {
+    const VERSIONE_SDK = "10.12.2";
+    const barra = document.getElementById("barraNotifiche");
+    const supportate = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    let cfg = null, avviate = null, inviataOra = false;
+    const piattaforma = /android/i.test(navigator.userAgent) ? "Android" : (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ? "iOS" : "Computer");
+    function carica(src) {
+      return new Promise(function (ok, ko) { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = function () { ko(new Error("Firebase non raggiungibile")); }; document.head.appendChild(s); });
+    }
+    function messaging(c) {
+      if (!avviate) {
+        avviate = carica("https://www.gstatic.com/firebasejs/" + VERSIONE_SDK + "/firebase-app-compat.js")
+          .then(function () { return carica("https://www.gstatic.com/firebasejs/" + VERSIONE_SDK + "/firebase-messaging-compat.js"); })
+          .then(function () { if (!firebase.apps.length) firebase.initializeApp(c.config); return firebase.messaging(); });
+      }
+      return avviate;
+    }
+    function ottieniCodice() {
+      if (!cfg) return Promise.resolve(null);
+      return Promise.all([messaging(cfg), navigator.serviceWorker.register("sw.js").then(function () { return navigator.serviceWorker.ready; })])
+        .then(function (r) { return r[0].getToken({ vapidKey: cfg.vapidKey, serviceWorkerRegistration: r[1] }); })
+        .then(function (codice) {
+          if (!codice) return null;
+          memoria.scrivi("ld_push_codice", codice);
+          if (paginaApp) paginaApp.win.postMessage({ ld: 1, tipo: "notifiche-token", token: codice, piattaforma: piattaforma }, paginaApp.origine);
+          return codice;
+        });
+    }
+    const rimandata = function () { return Number(memoria.leggi("ld_notifiche_rimandate") || 0) > Date.now() - 30 * 86400000; };
+    window.rimandaNotifiche = function () { barra.style.display = "none"; memoria.scrivi("ld_notifiche_rimandate", String(Date.now())); };
+    document.getElementById("notificheAttiva").addEventListener("click", function () {
+      barra.style.display = "none";
+      // requestPermission va chiamato subito dentro il tocco
+      Promise.resolve(Notification.requestPermission()).then(function (esito) {
+        if (esito === "granted") return ottieniCodice();
+      }).catch(function () {});
+    });
+    return {
+      accesso: function (c, testi) {
+        // Testi nella lingua del socio (arrivano dall'app); restano in italiano se mancano
+        if (testi && typeof testi === "object") {
+          [["notificheTitolo", "titolo"], ["notificheDettaglio", "dettaglio"], ["notificheAttiva", "attiva"]].forEach(function (x) {
+            if (typeof testi[x[1]] === "string" && testi[x[1]].length < 120) document.getElementById(x[0]).textContent = testi[x[1]];
+          });
+          if (typeof testi.chiudi === "string" && testi.chiudi.length < 40) document.getElementById("notificheChiudi").setAttribute("aria-label", testi.chiudi);
+        }
+        cfg = c && c.config && c.vapidKey ? c : null;
+        if (cfg) memoria.scrivi("ld_push_cfg", JSON.stringify(cfg));
+        barra.style.display = "none";
+        if (!cfg || !supportate) return;
+        if (piattaforma === "iOS" && !installata) return; // su iPhone solo dall'app aggiunta alla Home
+        if (Notification.permission === "granted") { if (!inviataOra) { inviataOra = true; ottieniCodice().catch(function () {}); } return; }
+        if (Notification.permission === "default" && !rimandata()) barra.style.display = "flex";
+      },
+      uscita: function () {
+        barra.style.display = "none";
+        const codice = memoria.leggi("ld_push_codice");
+        let c = cfg;
+        try { c = c || JSON.parse(memoria.leggi("ld_push_cfg") || "null"); } catch (e) {}
+        memoria.togli("ld_push_codice");
+        inviataOra = false;
+        // Chi esce non riceve più gli avvisi su questo telefono: il codice viene annullato
+        if (codice && c && supportate) messaging(c).then(function (m) { return m.deleteToken(); }).catch(function () {});
+      }
+    };
+  })();
 
   // ---------- invito a installare (solo se aperta nel browser, non già installata) ----------
   const installata = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
