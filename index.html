@@ -26,18 +26,12 @@
   .pannello img { width: 120px; height: 120px; border-radius: 50%; }
   .pannello p { margin: 0; max-width: 360px; line-height: 1.5; color: var(--testo-2); }
   /* Avvio: il logo del club pulsa al posto della rotella */
-  #attesa img { width: 140px; height: 140px; animation: pulsa 1.5s ease-in-out infinite; will-change: transform; }
+  #attesa img { width: min(200px, 55vw); height: min(200px, 55vw); animation: pulsa 1.5s ease-in-out infinite; will-change: transform; }
   @keyframes pulsa {
     0%, 100% { transform: scale(0.92); filter: drop-shadow(0 0 0 transparent); }
     50% { transform: scale(1.06); filter: drop-shadow(0 0 22px var(--primario)); }
   }
   @media (prefers-reduced-motion: reduce) { #attesa img { animation-duration: 3s; } }
-  /* Copia dell'ultima schermata, mostrata subito mentre l'app si aggiorna */
-  #copia { position: fixed; top: calc(env(safe-area-inset-top, 0px) + var(--linea)); left: 0; width: 100%; height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--linea)); border: 0; background: var(--sfondo); z-index: 5; pointer-events: none; transition: opacity .25s ease; }
-  #copia.via { opacity: 0; }
-  #aggiorno { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + var(--linea) + 60px); height: 4px; z-index: 6; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--primario) 20%, transparent); }
-  #aggiorno::before { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; background: var(--primario); animation: scorri 1s ease-in-out infinite; }
-  @keyframes scorri { from { left: -40%; } to { left: 100%; } }
   button { font: inherit; }
   .btn { background: var(--primario); color: #111; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
   .barra, #invito { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: none; align-items: center; gap: 10px; background: var(--riquadro); border: 1px solid var(--bordo); border-left: 4px solid var(--primario); border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
@@ -72,7 +66,7 @@
 </script>
 
 <div id="attesa" class="pannello">
-  <img src="icona-192-v4.png" alt="">
+  <img src="icona-512-v4.png" alt="">
   <p>Caricamento…</p>
 </div>
 
@@ -88,14 +82,6 @@
 
 <div id="lineaSu" class="linea-bordo"></div>
 <div id="lineaGiu" class="linea-bordo"></div>
-<iframe id="copia" title="Ultima schermata" sandbox="" aria-hidden="true" tabindex="-1" hidden></iframe>
-<div id="aggiorno" hidden></div>
-
-<div id="barraOffline" class="barra" role="status">
-  <span>📴 <b>Nessuna connessione</b>: stai vedendo i dati dell'ultima apertura.</span>
-  <button class="btn" type="button" onclick="location.reload()">Riprova</button>
-</div>
-
 <iframe id="app" title="App del club" allow="geolocation; fullscreen; screen-wake-lock; clipboard-write; autoplay; web-share" referrerpolicy="no-referrer-when-downgrade"></iframe>
 
 <div id="barraNotifiche" class="barra" role="dialog" aria-label="Notifiche">
@@ -127,44 +113,20 @@
     document.getElementById("configura").hidden = false;
     return;
   }
-  // ---------- ultima schermata custodita: si vede subito, poi arriva l'app aggiornata ----------
-  // Aperta da una notifica (?sezione=...) si va dritti alla pagina della notifica: niente copia.
+  // Il logo pulsa finché l'app non dice di essere pronta
+  memoria.togli("ld_istantanea"); // copia dell'ultima schermata salvata dalla versione di prova: non serve più
   const parametri = new URLSearchParams(location.search);
-  const copia = document.getElementById("copia");
-  const aggiorno = document.getElementById("aggiorno");
-  let istantanea = null;
-  try { istantanea = JSON.parse(memoria.leggi("ld_istantanea") || "null"); } catch (e) { istantanea = null; }
-  if (!istantanea || typeof istantanea.html !== "string" || !(Number(istantanea.quando) > Date.now() - 7 * 86400000) || parametri.has("sezione")) istantanea = null;
-  if (istantanea) {
-    copia.srcdoc = istantanea.html;
-    copia.hidden = false;
-    aggiorno.hidden = false;
-    attesa.hidden = true;
-  }
   let finita = false;
   function fineAttesa() {
     if (finita) return;
     finita = true;
     attesa.hidden = true;
-    aggiorno.hidden = true;
-    if (!copia.hidden) {
-      copia.classList.add("via");
-      setTimeout(function () { copia.hidden = true; copia.removeAttribute("srcdoc"); }, 300);
-    }
   }
   function senzaRete() {
     finita = true;
-    aggiorno.hidden = true;
+    attesa.hidden = true;
     iframe.style.display = "none";
-    if (istantanea) {
-      attesa.hidden = true;
-      if (copia.hidden || copia.classList.contains("via")) { copia.srcdoc = istantanea.html; copia.classList.remove("via"); copia.hidden = false; }
-      document.getElementById("barraOffline").style.display = "flex";
-    } else {
-      attesa.hidden = true;
-      copia.hidden = true;
-      document.getElementById("offline").hidden = false;
-    }
+    document.getElementById("offline").hidden = false;
   }
   if (navigator.onLine === false) {
     senzaRete();
@@ -208,19 +170,8 @@
     if (!ORIGINE_APP.test(e.origin) && !provaLocale) return;
     if (!dentroLaNostraFinestra(e.source)) return;
     paginaApp = { win: e.source, origine: e.origin };
-    if (d.tipo === "avvio") {
-      avvioRicevuto = true;
-      if (istantanea && istantanea.sezione) e.source.postMessage({ ld: 1, tipo: "riprendi", sezione: istantanea.sezione, socio: istantanea.socio || "" }, e.origin);
-      return;
-    }
+    if (d.tipo === "avvio") { avvioRicevuto = true; return; }
     if (d.tipo === "pronta") { fineAttesa(); return; }
-    if (d.tipo === "istantanea") {
-      const sz = d.sezione;
-      if (typeof d.html !== "string" || d.html.length > 1800000 || !sz || typeof sz.fn !== "string" || !/^[A-Za-z_]{1,60}$/.test(sz.fn) || !Array.isArray(sz.args)) return;
-      const dati = JSON.stringify({ html: d.html, sezione: { fn: sz.fn, args: sz.args.slice(0, 3) }, socio: String(d.socio || "").slice(0, 120), quando: Date.now() });
-      try { localStorage.setItem("ld_istantanea", dati); } catch (err) { memoria.togli("ld_istantanea"); }
-      return;
-    }
     if (d.tipo === "tema") {
       // Le barre del telefono prendono il colore della barra dell'app
       if (/^#[0-9a-f]{6}$/i.test(d.colore)) document.querySelector('meta[name="theme-color"]').setAttribute("content", d.colore);
@@ -240,7 +191,6 @@
       memoria.scrivi("ld_ricorda", d.ricorda);
     } else if (d.tipo === "cancella") {
       memoria.togli("ld_ricorda");
-      memoria.togli("ld_istantanea");
       notifiche.uscita();
     }
   });
