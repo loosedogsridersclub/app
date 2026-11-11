@@ -25,8 +25,19 @@
   .pannello { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; text-align: center; background: var(--sfondo); z-index: 5; }
   .pannello img { width: 120px; height: 120px; border-radius: 50%; }
   .pannello p { margin: 0; max-width: 360px; line-height: 1.5; color: var(--testo-2); }
-  .rotella { width: 34px; height: 34px; border: 4px solid #333; border-top-color: var(--primario); border-radius: 50%; animation: gira 0.9s linear infinite; }
-  @keyframes gira { to { transform: rotate(360deg); } }
+  /* Avvio: il logo del club pulsa al posto della rotella */
+  #attesa img { width: 140px; height: 140px; animation: pulsa 1.5s ease-in-out infinite; will-change: transform; }
+  @keyframes pulsa {
+    0%, 100% { transform: scale(0.92); filter: drop-shadow(0 0 0 transparent); }
+    50% { transform: scale(1.06); filter: drop-shadow(0 0 22px var(--primario)); }
+  }
+  @media (prefers-reduced-motion: reduce) { #attesa img { animation-duration: 3s; } }
+  /* Copia dell'ultima schermata, mostrata subito mentre l'app si aggiorna */
+  #copia { position: fixed; top: calc(env(safe-area-inset-top, 0px) + var(--linea)); left: 0; width: 100%; height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2 * var(--linea)); border: 0; background: var(--sfondo); z-index: 5; pointer-events: none; transition: opacity .25s ease; }
+  #copia.via { opacity: 0; }
+  #aggiorno { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + var(--linea) + 60px); height: 4px; z-index: 6; overflow: hidden; pointer-events: none; background: color-mix(in srgb, var(--primario) 20%, transparent); }
+  #aggiorno::before { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; background: var(--primario); animation: scorri 1s ease-in-out infinite; }
+  @keyframes scorri { from { left: -40%; } to { left: 100%; } }
   button { font: inherit; }
   .btn { background: var(--primario); color: #111; border: none; border-radius: 8px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
   .barra, #invito { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: none; align-items: center; gap: 10px; background: var(--riquadro); border: 1px solid var(--bordo); border-left: 4px solid var(--primario); border-radius: 10px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
@@ -54,6 +65,7 @@
       if (t && /^#[0-9a-f]{6}$/i.test(t.colore)) document.querySelector('meta[name="theme-color"]').setAttribute("content", t.colore);
       if (t && /^#[0-9a-f]{6}$/i.test(t.sfondo)) document.documentElement.style.setProperty("--sfondo", t.sfondo);
       if (t && /^#[0-9a-f]{6}$/i.test(t.linea || "")) { document.documentElement.style.setProperty("--linea", "2px"); document.documentElement.style.setProperty("--colore-linea", t.linea); }
+      if (t && /^#[0-9a-f]{6}$/i.test(t.primario || "")) document.documentElement.style.setProperty("--primario", t.primario);
     } catch (e) {}
   })();
   const INDIRIZZO_APP = "https://script.google.com/macros/s/AKfycbzEJux9z9L_MLRFcH7nNrIPdPJ8GT5rs_CdmzaVad7SrpfYR6vQwnaZqessO6qlmeNw/exec";
@@ -61,7 +73,6 @@
 
 <div id="attesa" class="pannello">
   <img src="icona-192-v4.png" alt="">
-  <div class="rotella" aria-hidden="true"></div>
   <p>Caricamento…</p>
 </div>
 
@@ -77,6 +88,14 @@
 
 <div id="lineaSu" class="linea-bordo"></div>
 <div id="lineaGiu" class="linea-bordo"></div>
+<iframe id="copia" title="Ultima schermata" sandbox="" aria-hidden="true" tabindex="-1" hidden></iframe>
+<div id="aggiorno" hidden></div>
+
+<div id="barraOffline" class="barra" role="status">
+  <span>📴 <b>Nessuna connessione</b>: stai vedendo i dati dell'ultima apertura.</span>
+  <button class="btn" type="button" onclick="location.reload()">Riprova</button>
+</div>
+
 <iframe id="app" title="App del club" allow="geolocation; fullscreen; screen-wake-lock; clipboard-write; autoplay; web-share" referrerpolicy="no-referrer-when-downgrade"></iframe>
 
 <div id="barraNotifiche" class="barra" role="dialog" aria-label="Notifiche">
@@ -108,26 +127,61 @@
     document.getElementById("configura").hidden = false;
     return;
   }
-  if (navigator.onLine === false) {
+  // ---------- ultima schermata custodita: si vede subito, poi arriva l'app aggiornata ----------
+  // Aperta da una notifica (?sezione=...) si va dritti alla pagina della notifica: niente copia.
+  const parametri = new URLSearchParams(location.search);
+  const copia = document.getElementById("copia");
+  const aggiorno = document.getElementById("aggiorno");
+  let istantanea = null;
+  try { istantanea = JSON.parse(memoria.leggi("ld_istantanea") || "null"); } catch (e) { istantanea = null; }
+  if (!istantanea || typeof istantanea.html !== "string" || !(Number(istantanea.quando) > Date.now() - 7 * 86400000) || parametri.has("sezione")) istantanea = null;
+  if (istantanea) {
+    copia.srcdoc = istantanea.html;
+    copia.hidden = false;
+    aggiorno.hidden = false;
     attesa.hidden = true;
-    document.getElementById("offline").hidden = false;
+  }
+  let finita = false;
+  function fineAttesa() {
+    if (finita) return;
+    finita = true;
+    attesa.hidden = true;
+    aggiorno.hidden = true;
+    if (!copia.hidden) {
+      copia.classList.add("via");
+      setTimeout(function () { copia.hidden = true; copia.removeAttribute("srcdoc"); }, 300);
+    }
+  }
+  function senzaRete() {
+    finita = true;
+    aggiorno.hidden = true;
+    iframe.style.display = "none";
+    if (istantanea) {
+      attesa.hidden = true;
+      if (copia.hidden || copia.classList.contains("via")) { copia.srcdoc = istantanea.html; copia.classList.remove("via"); copia.hidden = false; }
+      document.getElementById("barraOffline").style.display = "flex";
+    } else {
+      attesa.hidden = true;
+      copia.hidden = true;
+      document.getElementById("offline").hidden = false;
+    }
+  }
+  if (navigator.onLine === false) {
+    senzaRete();
     window.addEventListener("online", function () { location.reload(); });
     return;
   }
   // I parametri dell'indirizzo (es. ?sezione=giri) passano all'app; app=pwa le dice che è installata
-  const parametri = new URLSearchParams(location.search);
   parametri.set("app", "pwa");
   iframe.src = INDIRIZZO_APP + (INDIRIZZO_APP.indexOf("?") === -1 ? "?" : "&") + parametri.toString();
-  iframe.addEventListener("load", function () { setTimeout(function () { attesa.hidden = true; }, 600); });
+  // Le versioni dell'app che dicono "avvio" avvisano anche quando sono pronte; le altre si mostrano appena caricate
+  let avvioRicevuto = false;
+  iframe.addEventListener("load", function () { setTimeout(function () { if (!avvioRicevuto) fineAttesa(); }, 600); });
   // Controllo della rete (navigator.onLine non basta: con poco segnale risulta "in linea")
   const controllo = new AbortController();
   setTimeout(function () { controllo.abort(); }, 8000);
-  fetch("favicon.png?rete=" + Date.now(), { cache: "no-store", signal: controllo.signal }).catch(function () {
-    attesa.hidden = true;
-    iframe.style.display = "none";
-    document.getElementById("offline").hidden = false;
-  });
-  setTimeout(function () { attesa.hidden = true; }, 15000);
+  fetch("favicon.png?rete=" + Date.now(), { cache: "no-store", signal: controllo.signal }).catch(senzaRete);
+  setTimeout(fineAttesa, 20000);
 
   // ---------- custodia del codice "ricordami" (sull'iPhone la pagina interna lo perde alla chiusura) ----------
   // Si risponde solo alle pagine di Apps Script che stanno dentro la NOSTRA finestra.
@@ -154,14 +208,28 @@
     if (!ORIGINE_APP.test(e.origin) && !provaLocale) return;
     if (!dentroLaNostraFinestra(e.source)) return;
     paginaApp = { win: e.source, origine: e.origin };
+    if (d.tipo === "avvio") {
+      avvioRicevuto = true;
+      if (istantanea && istantanea.sezione) e.source.postMessage({ ld: 1, tipo: "riprendi", sezione: istantanea.sezione, socio: istantanea.socio || "" }, e.origin);
+      return;
+    }
+    if (d.tipo === "pronta") { fineAttesa(); return; }
+    if (d.tipo === "istantanea") {
+      const sz = d.sezione;
+      if (typeof d.html !== "string" || d.html.length > 1800000 || !sz || typeof sz.fn !== "string" || !/^[A-Za-z_]{1,60}$/.test(sz.fn) || !Array.isArray(sz.args)) return;
+      const dati = JSON.stringify({ html: d.html, sezione: { fn: sz.fn, args: sz.args.slice(0, 3) }, socio: String(d.socio || "").slice(0, 120), quando: Date.now() });
+      try { localStorage.setItem("ld_istantanea", dati); } catch (err) { memoria.togli("ld_istantanea"); }
+      return;
+    }
     if (d.tipo === "tema") {
       // Le barre del telefono prendono il colore della barra dell'app
       if (/^#[0-9a-f]{6}$/i.test(d.colore)) document.querySelector('meta[name="theme-color"]').setAttribute("content", d.colore);
+      if (/^#[0-9a-f]{6}$/i.test(d.primario || "")) document.documentElement.style.setProperty("--primario", d.primario);
       if (/^#[0-9a-f]{6}$/i.test(d.sfondo)) document.documentElement.style.setProperty("--sfondo", d.sfondo);
       const linea = /^#[0-9a-f]{6}$/i.test(d.linea || "") ? d.linea : "";
       document.documentElement.style.setProperty("--linea", linea ? "2px" : "0px");
       document.documentElement.style.setProperty("--colore-linea", linea || "transparent");
-      memoria.scrivi("ld_tema", JSON.stringify({ colore: d.colore, sfondo: d.sfondo, linea: linea }));
+      memoria.scrivi("ld_tema", JSON.stringify({ colore: d.colore, sfondo: d.sfondo, linea: linea, primario: /^#[0-9a-f]{6}$/i.test(d.primario || "") ? d.primario : "" }));
       return;
     }
     if (d.tipo === "accesso") { notifiche.accesso(d.notifiche, d.testi); return; }
@@ -172,6 +240,7 @@
       memoria.scrivi("ld_ricorda", d.ricorda);
     } else if (d.tipo === "cancella") {
       memoria.togli("ld_ricorda");
+      memoria.togli("ld_istantanea");
       notifiche.uscita();
     }
   });
