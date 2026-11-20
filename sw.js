@@ -1,7 +1,7 @@
 // Cornice dell'app installata: tiene in memoria i propri file per aprirsi anche
 // con rete lenta e mostrare l'avviso "nessuna connessione". I dati del club
 // arrivano sempre da Apps Script e non passano da qui.
-const VERSIONE = "ld-pwa-12";
+const VERSIONE = "ld-pwa-13";
 const FILE = ["./", "./index.html", "./manifest.webmanifest", "./icona-192-v4.png", "./icona-512-v4.png", "./icona-maskable-512-v5.png", "./apple-touch-icon.png", "./favicon.png", "./badge-96.png"];
 
 self.addEventListener("install", function (e) {
@@ -39,7 +39,8 @@ self.addEventListener("push", function (e) {
   const titolo = String(d.titolo || n.title || "Club");
   const opzioni = {
     body: String(d.testo || n.body || ""),
-    icon: "icona-192-v4.png",
+    // niente "icon": su Android il logo a sinistra è già l'icona dell'app installata,
+    // con "icon" ne compariva un secondo uguale a destra
     badge: "badge-96.png",
     tag: String(d.tag || ""),
     renotify: !!d.tag,
