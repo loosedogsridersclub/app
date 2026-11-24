@@ -25,8 +25,14 @@
   .pannello { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; text-align: center; background: var(--sfondo); z-index: 5; }
   .pannello img { width: 120px; height: 120px; border-radius: 50%; }
   .pannello p { margin: 0; max-width: 360px; line-height: 1.5; color: var(--testo-2); }
-  /* Avvio: il logo del club pulsa al posto della rotella */
-  #attesa img { width: min(200px, 55vw); height: min(200px, 55vw); animation: pulsa 1.5s ease-in-out infinite; will-change: transform; }
+  /* Avvio: il video del logo animato; se il telefono non lo fa partire (risparmio energetico,
+     movimento ridotto) il logo fermo pulsa. A video finito l'ultimo fotogramma pulsa piano. */
+  #attesa img, #videoAvvio { width: min(240px, 62vw); height: min(240px, 62vw); }
+  #attesa img { animation: pulsa 1.5s ease-in-out infinite; will-change: transform; }
+  #videoAvvio { display: block; object-fit: cover; background: transparent;
+    -webkit-mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%);
+            mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%); }
+  #videoAvvio.finito { animation: pulsa 2.2s ease-in-out infinite; }
   @keyframes pulsa {
     0%, 100% { transform: scale(0.92); filter: drop-shadow(0 0 0 transparent); }
     50% { transform: scale(1.06); filter: drop-shadow(0 0 22px var(--primario)); }
@@ -66,7 +72,8 @@
 </script>
 
 <div id="attesa" class="pannello">
-  <img src="icona-512-v4.png" alt="">
+  <video id="videoAvvio" src="logo-avvio.mp4" muted playsinline autoplay preload="auto" disablepictureinpicture aria-hidden="true"></video>
+  <img id="logoAvvio" src="icona-512-v4.png" alt="" hidden>
   <p>Caricamento…</p>
 </div>
 
@@ -113,7 +120,23 @@
     document.getElementById("configura").hidden = false;
     return;
   }
-  // Il logo pulsa finché l'app non dice di essere pronta
+  // Il video del logo (o il logo che pulsa) resta finché l'app non dice di essere pronta
+  const videoAvvio = document.getElementById("videoAvvio");
+  const logoAvvio = document.getElementById("logoAvvio");
+  function logoFermo() {
+    videoAvvio.hidden = true;
+    try { videoAvvio.pause(); } catch (e) {}
+    logoAvvio.hidden = false;
+  }
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) logoFermo();
+  else {
+    videoAvvio.addEventListener("error", logoFermo);
+    videoAvvio.addEventListener("ended", function () { videoAvvio.classList.add("finito"); });
+    try {
+      const p = videoAvvio.play();
+      if (p && p.catch) p.catch(function () { if (videoAvvio.paused) logoFermo(); });
+    } catch (e) { logoFermo(); }
+  }
   memoria.togli("ld_istantanea"); // copia dell'ultima schermata salvata dalla versione di prova: non serve più
   const parametri = new URLSearchParams(location.search);
   let finita = false;
@@ -121,6 +144,7 @@
     if (finita) return;
     finita = true;
     attesa.hidden = true;
+    try { videoAvvio.pause(); } catch (e) {}
   }
   function senzaRete() {
     finita = true;

@@ -12,8 +12,8 @@ In breve:
    carica TUTTI i file di questa cartella (anche questo, non fa danni).
 3. Settings > Pages > Branch: main, / (root) > Save.
    Dopo un minuto ricevi l'indirizzo, es. https://tuonome.github.io/club-app/
-4. Nell'app: Impostazioni > "Indirizzo dell'app da installare sul telefono"
-   > incolla quell'indirizzo > Salva.
+4. Nell'app: Impostazioni > Dati Ufficiali del Club > "Indirizzo dell'App"
+   > incolla quell'indirizzo > Salva (e' lo stesso link usato nelle email).
 
 File:
 - index.html             la cornice (qui c'e' il link /exec)
@@ -25,6 +25,9 @@ File:
                          su sfondo trasparente (per un altro club: stessi nomi e misure
                          192, 512, 180, 32 px)
 - badge-96.png           piccola icona bianca delle notifiche (barra di stato Android)
+- logo-avvio.mp4         logo animato mostrato all'apertura mentre l'app si carica
+                         (per un altro club: sostituiscilo con un video quadrato, max ~300 KB,
+                         oppure cancellalo: al suo posto pulsa il logo)
 
 Notifiche sul telefono: la configurazione (Firebase) si fa nell'app, come
 Administrator > Impostazioni > Notifiche sul telefono. Guida, capitolo 5.13.
